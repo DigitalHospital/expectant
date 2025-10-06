@@ -1,6 +1,6 @@
 # frozen_string_literal: true
 
-require 'dry/validation'
+require "dry/validation"
 
 module Expectant
   class SchemaBuilder
@@ -13,44 +13,19 @@ module Expectant
       fields = @fields
       rules = @rules
 
-      Dry::Validation.Contract do
-        # Define schema based on fields
+      Class.new(Dry::Validation::Contract) do
+        # Enable option passing (allows context to be passed at validation time)
+        option :context, default: proc { {} }
+
+        # Define schema based on fields using dry-types
         params do
           fields.each do |field|
+            dry_type = field.dry_type
+
             if field.required?
-              case field.dry_validation_type
-              when :integer
-                required(field.name).value(:integer)
-              when :float
-                required(field.name).value(:float)
-              when :string
-                required(field.name).value(:string)
-              when :bool
-                required(field.name).value(:bool)
-              when :array
-                required(field.name).value(:array)
-              when :hash
-                required(field.name).value(:hash)
-              else
-                required(field.name).filled
-              end
+              required(field.name).value(dry_type)
             else
-              case field.dry_validation_type
-              when :integer
-                optional(field.name).maybe(:integer)
-              when :float
-                optional(field.name).maybe(:float)
-              when :string
-                optional(field.name).maybe(:string)
-              when :bool
-                optional(field.name).maybe(:bool)
-              when :array
-                optional(field.name).maybe(:array)
-              when :hash
-                optional(field.name).maybe(:hash)
-              else
-                optional(field.name).value(:any)
-              end
+              optional(field.name).value(dry_type)
             end
           end
         end
@@ -67,17 +42,6 @@ module Expectant
           else
             # Global rule without a specific field
             rule(&rule_def[:block])
-          end
-        end
-
-        # Add type validation for custom classes
-        fields.each do |field|
-          next unless field.type.is_a?(Class)
-
-          rule(field.name) do
-            if value && !value.is_a?(field.type)
-              key.failure("must be an instance of #{field.type}")
-            end
           end
         end
       end

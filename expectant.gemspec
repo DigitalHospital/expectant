@@ -5,15 +5,14 @@ require_relative "lib/expectant/version"
 Gem::Specification.new do |spec|
   spec.name = "expectant"
   spec.version = Expectant::VERSION
-  spec.authors = ["Javi Medina Fetterman"]
+  spec.authors = ["Hector Medina Fetterman"]
   spec.email = ["javi@digitalhospital.com"]
 
-  spec.summary = "Write a short summary, because RubyGems requires one."
-  spec.description = "Write a longer description or delete this line."
+  spec.summary = "A flexible DSL for defining reusable validation schemas"
+  spec.description = "Expectant provides a clean DSL for defining multiple validation schemas in a single class. Built on dry-validation and dry-types, it supports custom rules, defaults, fallbacks, and context-aware validations, making it easy to validate inputs, outputs, and any structured data in your Ruby applications."
   spec.homepage = "https://github.com/DigitalHospital/expectant"
   spec.license = "MIT"
   spec.required_ruby_version = ">= 3.1.0"
-  spec.metadata["allowed_push_host"] = "TODO: Set to your gem server 'https://example.com'"
 
   spec.metadata["homepage_uri"] = spec.homepage
   spec.metadata["source_code_uri"] = "https://github.com/DigitalHospital/expectant"
@@ -32,10 +31,6 @@ Gem::Specification.new do |spec|
   spec.executables = spec.files.grep(%r{\Aexe/}) { |f| File.basename(f) }
   spec.require_paths = ["lib"]
 
-  # Uncomment to register a new dependency of your gem
-  # spec.add_dependency "example-gem", "~> 1.0"
   spec.add_dependency "dry-validation", "~> 1.10"
-
-  # For more information and examples about making a new gem, check out our
-  # guide at: https://bundler.io/guides/creating_gem.html
+  spec.add_dependency "dry-types", "~> 1.7"
 end

@@ -5,6 +5,7 @@ RSpec.describe Expectant::DSL do
     it "dynamically defines field definition method" do
       test_class = Class.new do
         include Expectant
+
         expectation :inputs
       end
 
@@ -14,6 +15,7 @@ RSpec.describe Expectant::DSL do
     it "dynamically defines rule method" do
       test_class = Class.new do
         include Expectant
+
         expectation :inputs
       end
 
@@ -23,6 +25,7 @@ RSpec.describe Expectant::DSL do
     it "supports multiple schema definitions" do
       test_class = Class.new do
         include Expectant
+
         expectation :expects
         expectation :promises
         expectation :params
@@ -39,6 +42,7 @@ RSpec.describe Expectant::DSL do
     it "supports custom schema names" do
       test_class = Class.new do
         include Expectant
+
         expectation :my_custom_schema
       end
 
@@ -49,6 +53,7 @@ RSpec.describe Expectant::DSL do
     it "creates schema definitions storage" do
       test_class = Class.new do
         include Expectant
+
         expectation :inputs
       end
 
@@ -62,6 +67,7 @@ RSpec.describe Expectant::DSL do
     let(:test_class) do
       Class.new do
         include Expectant
+
         expectation :expects
       end
     end
@@ -73,14 +79,6 @@ RSpec.describe Expectant::DSL do
       expect(test_class.schema_definitions[:expects][:fields].size).to eq(2)
       expect(test_class.schema_definitions[:expects][:fields][0].name).to eq(:name)
       expect(test_class.schema_definitions[:expects][:fields][1].name).to eq(:age)
-    end
-
-    it "creates attribute accessors" do
-      test_class.expects :username, type: :string
-
-      instance = test_class.new
-      expect(instance).to respond_to(:username)
-      expect(instance).to respond_to(:username=)
     end
 
     it "returns an Expectation object" do
@@ -96,6 +94,7 @@ RSpec.describe Expectant::DSL do
     let(:test_class) do
       Class.new do
         include Expectant
+
         expectation :expects
       end
     end
@@ -135,6 +134,7 @@ RSpec.describe Expectant::DSL do
     it "allows multiple rules for different schemas" do
       test_class = Class.new do
         include Expectant
+
         expectation :expects
         expectation :promises
       end

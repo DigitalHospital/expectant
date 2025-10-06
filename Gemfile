@@ -5,9 +5,11 @@ source "https://rubygems.org"
 # Specify your gem's dependencies in expectant.gemspec
 gemspec
 
-gem "irb"
-gem "rake", "~> 13.0"
+gem "rake"
 
-gem "rspec", "~> 3.0"
-
-gem "standard", "~> 1.3"
+group :test do
+  gem "standard"
+  gem "rspec"
+  gem "bundler-audit"
+  gem "simplecov", require: false
+end

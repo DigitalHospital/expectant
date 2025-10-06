@@ -43,7 +43,7 @@ RSpec.describe Expectant do
         expects :amount, type: :float
         expects :description, type: :string, optional: true
         expects :status, type: :string, default: "draft"
-        expects :discount, type: :float, default: -> { 0.0 }
+        expects :discount, type: :float, default: 0.0
         expects :invoice, type: invoice_class, optional: true
 
         expects_rule(:amount) do
@@ -64,7 +64,7 @@ RSpec.describe Expectant do
 
         # Define params schema
         params :limit, type: :integer, optional: true
-        params :offset, type: :integer, optional: true, default: 0
+        params :offset, type: :integer, default: 0
 
         params_rule(:limit) do
           key.failure("must be between 1 and 100") if value && (value < 1 || value > 100)
@@ -86,10 +86,10 @@ RSpec.describe Expectant do
         expect(customer_id_field.required?).to be true
 
         description_field = expects_def[:fields].find { |f| f.name == :description }
-        expect(description_field.optional).to be true
+        expect(description_field.dry_type.optional?).to be true
 
         status_field = expects_def[:fields].find { |f| f.name == :status }
-        expect(status_field.default).to eq("draft")
+        expect(status_field.has_default?).to be true
       end
 
       it "stores promises fields correctly" do
@@ -105,8 +105,7 @@ RSpec.describe Expectant do
         expect(params_def[:fields].size).to eq(2)
 
         limit_field = params_def[:fields].find { |f| f.name == :limit }
-        expect(limit_field.type).to eq(:integer)
-        expect(limit_field.optional).to be true
+        expect(limit_field.dry_type.optional?).to be true
       end
 
       it "stores rules scoped to their schemas" do
@@ -121,39 +120,20 @@ RSpec.describe Expectant do
       end
     end
 
-    describe "attribute accessors" do
-      it "creates accessors for all schema fields" do
-        instance = test_class.new
-        expect(instance).to respond_to(:customer_id)
-        expect(instance).to respond_to(:customer_id=)
-        expect(instance).to respond_to(:amount)
-        expect(instance).to respond_to(:total)
-        expect(instance).to respond_to(:limit)
-        expect(instance).to respond_to(:offset)
-      end
-
-      it "sets default values on initialization" do
-        instance = test_class.new
-        expect(instance.status).to eq("draft")
-        expect(instance.discount).to eq(0.0)
-        expect(instance.offset).to eq(0)
-      end
-    end
-
     describe "#get_schema" do
       it "builds and returns a dry-validation contract for expects" do
         schema = test_class.get_schema(:expects)
-        expect(schema).to be_a(Dry::Validation::Contract)
+        expect(schema).to be < Dry::Validation::Contract
       end
 
       it "builds and returns a dry-validation contract for promises" do
         schema = test_class.get_schema(:promises)
-        expect(schema).to be_a(Dry::Validation::Contract)
+        expect(schema).to be < Dry::Validation::Contract
       end
 
       it "builds and returns a dry-validation contract for params" do
         schema = test_class.get_schema(:params)
-        expect(schema).to be_a(Dry::Validation::Contract)
+        expect(schema).to be < Dry::Validation::Contract
       end
 
       it "caches schemas" do
@@ -166,7 +146,7 @@ RSpec.describe Expectant do
     describe "#validate" do
       context "expects schema" do
         it "validates valid input" do
-          result = test_class.validate(:expects, {
+          result = test_class.new.validate(:expects, {
             customer_id: 123,
             amount: 100.0,
             description: "Test invoice"
@@ -175,7 +155,7 @@ RSpec.describe Expectant do
         end
 
         it "rejects invalid customer_id (custom rule)" do
-          result = test_class.validate(:expects, {
+          result = test_class.new.validate(:expects, {
             customer_id: 999,
             amount: 100.0
           })
@@ -184,7 +164,7 @@ RSpec.describe Expectant do
         end
 
         it "rejects negative amount (custom rule)" do
-          result = test_class.validate(:expects, {
+          result = test_class.new.validate(:expects, {
             customer_id: 123,
             amount: -50.0
           })
@@ -193,7 +173,7 @@ RSpec.describe Expectant do
         end
 
         it "rejects missing required fields" do
-          result = test_class.validate(:expects, {
+          result = test_class.new.validate(:expects, {
             amount: 100.0
           })
           expect(result.success?).to be false
@@ -201,7 +181,7 @@ RSpec.describe Expectant do
         end
 
         it "rejects wrong types" do
-          result = test_class.validate(:expects, {
+          result = test_class.new.validate(:expects, {
             customer_id: "not_an_integer",
             amount: 100.0
           })
@@ -212,7 +192,7 @@ RSpec.describe Expectant do
 
       context "promises schema" do
         it "validates valid output" do
-          result = test_class.validate(:promises, {
+          result = test_class.new.validate(:promises, {
             invoice: customer_invoice_class.new,
             total: 100.0
           })
@@ -220,7 +200,7 @@ RSpec.describe Expectant do
         end
 
         it "rejects negative total (custom rule)" do
-          result = test_class.validate(:promises, {
+          result = test_class.new.validate(:promises, {
             invoice: customer_invoice_class.new,
             total: -50.0
           })
@@ -229,7 +209,7 @@ RSpec.describe Expectant do
         end
 
         it "rejects missing required fields" do
-          result = test_class.validate(:promises, {
+          result = test_class.new.validate(:promises, {
             total: 100.0
           })
           expect(result.success?).to be false
@@ -239,19 +219,19 @@ RSpec.describe Expectant do
 
       context "params schema" do
         it "validates valid params with optional fields" do
-          result = test_class.validate(:params, {
+          result = test_class.new.validate(:params, {
             limit: 50
           })
           expect(result.success?).to be true
         end
 
         it "validates empty params (all optional)" do
-          result = test_class.validate(:params, {})
+          result = test_class.new.validate(:params, {})
           expect(result.success?).to be true
         end
 
         it "rejects limit out of range (custom rule)" do
-          result = test_class.validate(:params, {
+          result = test_class.new.validate(:params, {
             limit: 200
           })
           expect(result.success?).to be false
@@ -289,13 +269,13 @@ RSpec.describe Expectant do
       end
 
       it "validates custom schemas independently" do
-        result = custom_class.validate(:inputs, { data: {} })
+        result = custom_class.new.validate(:inputs, {data: {}})
         expect(result.success?).to be true
 
-        result = custom_class.validate(:outputs, { result: "success" })
+        result = custom_class.new.validate(:outputs, {result: "success"})
         expect(result.success?).to be true
 
-        result = custom_class.validate(:metadata, { timestamp: 123456 })
+        result = custom_class.new.validate(:metadata, {timestamp: 123456})
         expect(result.success?).to be true
       end
     end
