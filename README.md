@@ -24,13 +24,49 @@ Or install it yourself as:
 gem install expectant
 ```
 
+## Configuration
+
+You can configure Expectant's behavior globally:
+
+```ruby
+# config/initializers/expectant.rb (for Rails)
+# or at the top of your application
+
+Expectant.configure do |config|
+  # Customize the validator method naming
+  # Default: schema_name_rule (e.g., expects_rule, promises_rule)
+
+  config.validator_suffix = "validation"  # expects_validation
+  # or
+  config.validator_prefix = "validate"    # validate_expects
+  # or both
+  config.validator_prefix = "check"
+  config.validator_suffix = "constraints" # check_expects_constraints
+end
+```
+
+**Examples of different configurations:**
+
+```ruby
+# Default (no configuration needed)
+expects_rule(:amount) { ... }
+
+# With suffix = "validation"
+Expectant.configure { |c| c.validator_suffix = "validation" }
+expects_validation(:amount) { ... }
+
+# With prefix = "validate"
+Expectant.configure { |c| c.validator_prefix = "validate"; c.validator_suffix = nil }
+validate_expects(:amount) { ... }
+```
+
 ## Usage
 
 ### Basic Example
 
 ```ruby
 class InvoiceService
-  include Expectant
+  include Expectant::DSL
 
   # Define a schema type
   expectation :expects
@@ -72,7 +108,7 @@ You can define multiple independent schemas in the same class:
 
 ```ruby
 class DataProcessor
-  include Expectant
+  include Expectant::DSL
 
   # Input validation schema
   expectation :inputs
@@ -225,7 +261,7 @@ Pass external data to validation rules via context:
 
 ```ruby
 class PaginationValidator
-  include Expectant
+  include Expectant::DSL
 
   expectation :params
 
@@ -262,13 +298,140 @@ result = validator.validate_with_context(
 )
 ```
 
+### Schema Inheritance
+
+Expectant supports schema inheritance, allowing child classes to inherit field definitions and validation rules from parent classes.
+
+#### Opt-in Inheritance
+
+By default, child classes **do not** inherit schemas. You can explicitly inherit schemas when needed:
+
+```ruby
+class BaseService
+  include Expectant::DSL
+
+  expectation :expects
+  expects :tenant_id, type: :integer
+  expects :created_at, type: :datetime, default: -> { Time.now }
+
+  expects_rule(:tenant_id) do
+    key.failure("must be positive") if value && value <= 0
+  end
+end
+
+# Inherit a specific schema
+class UserService < BaseService
+  inherit_expectation(:expects)  # Inherits tenant_id, created_at, and validation rules
+
+  expects :user_name, type: :string
+  expects :email, type: :string
+  # Now has: tenant_id, created_at, user_name, email
+end
+
+# Inherit all schemas
+class AccountService < BaseService
+  inherit_all_expectations  # Inherits all schemas from parent
+
+  expects :account_name, type: :string
+end
+
+# No inheritance (default)
+class StandaloneService < BaseService
+  expectation :expects  # Starts fresh, no inherited fields
+  expects :id, type: :integer  # Only has :id
+end
+```
+
+#### Parent-Forced Inheritance
+
+Parents can force all child classes to automatically inherit schemas:
+
+```ruby
+class ApplicationService
+  include Expectant::DSL
+
+  # Force all children to inherit schemas
+  def self.inherited(subclass)
+    super
+    subclass.inherit_all_expectations
+  end
+
+  expectation :expects
+  expects :tenant_id, type: :integer
+  expects :request_id, type: :string, default: -> { SecureRandom.uuid }
+
+  expects_rule(:tenant_id) do
+    key.failure("must be positive") if value && value <= 0
+  end
+end
+
+class UserService < ApplicationService
+  # Automatically has tenant_id and request_id from parent
+  expects :user_name, type: :string
+  # validate(:expects) checks: tenant_id, request_id, user_name
+end
+
+class OrderService < ApplicationService
+  # Automatically has tenant_id and request_id from parent
+  expects :order_number, type: :string
+  # validate(:expects) checks: tenant_id, request_id, order_number
+end
+```
+
+#### Inheriting from Mixins
+
+You can also inherit from modules or concerns using the `from:` parameter:
+
+```ruby
+module Timestamps
+  include Expectant::DSL
+
+  expectation :expects
+  expects :created_at, type: :datetime
+  expects :updated_at, type: :datetime
+end
+
+class MyModel
+  include Expectant::DSL
+
+  inherit_expectation(:expects, from: Timestamps)
+  expects :name, type: :string
+  # Has: created_at, updated_at, name
+end
+```
+
+#### Multi-level Inheritance
+
+Inheritance works across multiple levels:
+
+```ruby
+class GrandParent
+  include Expectant::DSL
+
+  expectation :expects
+  expects :a, type: :string
+end
+
+class Parent < GrandParent
+  inherit_expectation(:expects)
+  expects :b, type: :string
+  # Has: a, b
+end
+
+class Child < Parent
+  inherit_expectation(:expects)
+  expects :c, type: :string
+  # Has: a, b, c
+end
+```
+
 ### Getting Schema Keys
 
 Retrieve the field names for a schema:
 
 ```ruby
 class MyService
-  include Expectant
+  include Expectant::DSL
 
   expectation :expects
   expects :name, type: :string
@@ -287,7 +450,7 @@ You can use any name for your schemas, not just `expects` and `promises`:
 
 ```ruby
 class CustomValidator
-  include Expectant
+  include Expectant::DSL
 
   expectation :request
   expectation :response
@@ -307,7 +470,7 @@ class Invoice
 end
 
 class InvoiceService
-  include Expectant
+  include Expectant::DSL
 
   expectation :expects
   expects :invoice, type: Invoice
@@ -325,7 +488,7 @@ end
 
 ```ruby
 class SmartValidator
-  include Expectant
+  include Expectant::DSL
 
   expectation :config
 

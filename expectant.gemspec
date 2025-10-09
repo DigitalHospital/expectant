@@ -33,4 +33,5 @@ Gem::Specification.new do |spec|
 
   spec.add_dependency "dry-validation", "~> 1.10"
   spec.add_dependency "dry-types", "~> 1.7"
+  spec.add_dependency "activesupport", ">= 6.0"
 end

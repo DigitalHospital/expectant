@@ -9,6 +9,7 @@ gem "rake"
 
 group :test do
   gem "standard"
+  gem "ruby-lsp-rspec", require: false
   gem "rspec"
   gem "bundler-audit"
   gem "simplecov", require: false

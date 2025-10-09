@@ -1,142 +1,118 @@
 # frozen_string_literal: true
 
+require_relative "utils"
+require_relative "schema"
+require_relative "bound_schema"
+
 module Expectant
   module DSL
-    def self.extended(base)
-      base.class_eval do
-        @_expectant_schemas = {}
+    def self.included(base)
+      base.extend(ClassMethods)
+    end
+
+    module ClassMethods
+      def self.extended(base)
+        base.class_eval do
+          @_expectant_schemas = {}
+        end
       end
 
-      base.include(InstanceMethods)
-    end
+      def inherited(sub)
+        return unless instance_variable_defined?(:@_expectant_schemas)
+        return if @_expectant_schemas.empty?
 
-    # Define a new schema type
-    def expectation(schema_name)
-      schema_name = schema_name.to_sym
-      @_expectant_schemas[schema_name] = {
-        fields: [],
-        rules: []
-      }
+        # Deep copy each schema (fields + validators)
+        parent_schemas = @_expectant_schemas
+        duped = parent_schemas.transform_values { |schema| schema.duplicate }
 
-      # Dynamically define the field definition method
-      # (e.g. expects, promises, inputs, outputs)
-      define_singleton_method(schema_name) do |name, **options|
-        expectation = Expectation.new(name, **options)
-        @_expectant_schemas[schema_name][:fields] << expectation
-
-        expectation
+        sub.instance_variable_set(:@_expectant_schemas, duped)
       end
 
-      # Add the rule definition method
-      # (e.g. expects_rule, promises_rule, inputs_rule, outputs_rule)
-      rule_method_name = "#{schema_name}_rule"
-      define_singleton_method(rule_method_name) do |*field_names, &block|
-        @_expectant_schemas[schema_name][:rules] << {
-          name: if field_names.empty?
-                  nil
-                else
-                  ((field_names.size == 1) ? field_names.first : field_names)
-                end,
-          block: block
-        }
-      end
-    end
-
-    # Get the schema definition for a given schema name
-    def schema_definitions
-      @_expectant_schemas ||= {}
-    end
-
-    # Build and return a dry-schema contract class for a specific schema type
-    def get_schema(schema_name)
-      schema_name = schema_name.to_sym
-      (@schema_classes ||= {})[schema_name] ||= SchemaBuilder.new(
-        schema_definitions[schema_name]
-      ).build
-    end
-
-    # Get the field names (keys) for a specific schema
-    def schema_keys(schema_name)
-      schema_name = schema_name.to_sym
-      definition = schema_definitions[schema_name]
-      return [] unless definition
-
-      definition[:fields].map(&:name)
-    end
-
-    # Instance methods module
-    module InstanceMethods
-      # Validate data against a specific schema
+      # Define a new expectation schema
       # Options:
-      #   context: Hash of values to make available inside rules (accessible via `context[:key]`)
-      def validate(schema_name, data, context: {})
-        schema_name = schema_name.to_sym
-
-        # Apply proc defaults before validation
-        data = apply_defaults(schema_name, data)
-
-        # Create contract instance with context, then validate
-        contract_class = self.class.get_schema(schema_name)
-        contract = contract_class.new(context: context)
-        result = contract.call(data)
-
-        # If validation failed, apply fallbacks for fields with errors and retry
-        if !result.success?
-          data_with_fallbacks = apply_fallbacks(schema_name, data, result)
-          if data_with_fallbacks != data
-            # Re-validate with fallback values
-            result = contract.call(data_with_fallbacks)
+      #   collision: :error|:force -> method name collision policy for dynamic definitions
+      #   singular: string|symbol  -> control singular name for the schema
+      def expects(schema_name, collision: :error, singular: nil)
+        field_method_name = Utils.singularize(schema_name.to_sym)
+        if !singular.nil?
+          if singular.is_a?(String) || singular.is_a?(Symbol)
+            field_method_name = singular.to_sym
+          else
+            raise ConfigurationError, "Invalid singular option: #{singular.inspect}"
           end
         end
+        schema = schema_name.to_sym
 
-        result
+        if @_expectant_schemas.key?(schema)
+          raise SchemaError, "Schema :#{schema} already defined"
+        else
+          create_schema(schema, collision: collision, field_method_name: field_method_name)
+        end
+
+        self
+      end
+
+      def reset_inherited_expectations!
+        @_expectant_schemas = {}
       end
 
       private
 
-      # Apply default values for missing fields (especially proc defaults)
-      def apply_defaults(schema_name, data)
-        data = data.dup
-        definition = self.class.schema_definitions[schema_name]
-        return data unless definition
+      def create_schema(schema_name, collision: :error, field_method_name: nil)
+        @_expectant_schemas[schema_name] = Schema.new(schema_name)
 
-        definition[:fields].each do |field|
-          # Skip if value already provided
-          next if data.key?(field.name)
-
-          # Apply proc defaults
-          if field.default.respond_to?(:call)
-            data[field.name] = instance_exec(&field.default)
-          end
-          # Static defaults are handled by dry-types
-        end
-
-        data
-      end
-
-      # Apply fallback values to fields that have errors
-      def apply_fallbacks(schema_name, data, result)
-        data = data.dup
-        definition = self.class.schema_definitions[schema_name]
-        return data unless definition
-
-        definition[:fields].each do |field|
-          next unless field.has_fallback?
-
-          # Apply fallback if field has an error
-          if result.errors[field.name]&.any?
-            fallback_value = if field.fallback.respond_to?(:call)
-              # Proc fallback - evaluate in instance context
-              instance_exec(&field.fallback)
-            else
-              # Static fallback
-              field.fallback
-            end
-            data[field.name] = fallback_value
+        # Dynamically define the field definition method
+        # (e.g. input for :inputs, datum for :data)
+        Utils.define_with_collision_policy(singleton_class, field_method_name, collision: collision) do
+          define_singleton_method(field_method_name) do |name, **options|
+            expectation = Expectation.new(name, **options)
+            @_expectant_schemas[schema_name].add_field(expectation)
+            expectation
           end
         end
 
-        data
+        # Reset a schema
+        reset_method_name = "reset_#{schema_name}!"
+        Utils.define_with_collision_policy(singleton_class, reset_method_name, collision: collision) do
+          define_singleton_method(reset_method_name) do
+            @_expectant_schemas[schema_name].reset!
+          end
+        end
+
+        # Define validators
+        method_name = Utils.validator_method_name(field_method_name, Expectant.configuration)
+        Utils.define_with_collision_policy(singleton_class, method_name, collision: collision) do
+          define_singleton_method(method_name) do |*field_names, &block|
+            @_expectant_schemas[schema_name].add_validator({
+              name: if field_names.empty?
+                      nil
+                    else
+                      ((field_names.size == 1) ? field_names.first : field_names)
+                    end,
+              block: block
+            })
+          end
+        end
+
+        # Add class-level schema accessor method (e.g. MyClass.inputs)
+        Utils.define_with_collision_policy(singleton_class, schema_name, collision: collision) do
+          define_singleton_method(schema_name) do
+            @_expectant_schemas[schema_name]
+          end
+        end
+
+        # Add instance-level schema accessor method (e.g. instance.inputs)
+        if !instance_methods(false).include?(schema_name)
+          define_method(schema_name) do
+            BoundSchema.new(self, self.class.instance_variable_get(:@_expectant_schemas)[schema_name])
+          end
+        elsif collision == :force
+          define_method(schema_name) do
+            BoundSchema.new(self, self.class.instance_variable_get(:@_expectant_schemas)[schema_name])
+          end
+        elsif collision == :error
+          raise ConfigurationError, "Instance method #{schema_name} already defined"
+        end
       end
     end
   end
