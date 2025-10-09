@@ -16,8 +16,7 @@ jobs:
     name: Ruby ${{ matrix.ruby }} Test
     strategy:
       matrix:
-        ruby:
-          - ['3.2', '3.3']
+        ruby: ['3.2', '3.3']
 
     steps:
       - uses: actions/checkout@v5
@@ -26,5 +25,7 @@ jobs:
         with:
           ruby-version: ${{ matrix.ruby }}
           bundler-cache: true
-      - name: Run the default task
-        run: bundle exec rake
+      - name: Run Standard compliance check
+        run: bundle exec standardrb --format github
+      - name: Run unit tests
+        run: bundle exec rake spec
