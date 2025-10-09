@@ -1,6 +1,7 @@
 # Expectant
 
 [![Gem Version](https://img.shields.io/gem/v/expectant?style=flat&label=Expectant)](https://rubygems.org/gems/expectant)
+[![Ruby Test](https://github.com/DigitalHospital/expectant/actions/workflows/main.yml/badge.svg?branch=master)](https://github.com/expectant/actions/workflows/main.yml)</span> 
 
 A Ruby DSL for defining validation schemas with type coercion, defaults, and fallbacks. Built on [dry-validation](https://dry-rb.org/gems/dry-validation/) and [dry-types](https://dry-rb.org/gems/dry-types/).
 
