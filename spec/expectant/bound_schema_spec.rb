@@ -49,7 +49,7 @@ RSpec.describe Expectant::BoundSchema do
       end
 
       it "validates valid data" do
-        result = bound_schema.validate({ name: "John" })
+        result = bound_schema.validate({name: "John"})
         expect(result.success?).to be true
       end
 
@@ -77,7 +77,7 @@ RSpec.describe Expectant::BoundSchema do
       end
 
       it "does not override provided values" do
-        result = bound_schema.validate({ name: "Custom Name" })
+        result = bound_schema.validate({name: "Custom Name"})
         expect(result.success?).to be true
         expect(result.to_h[:name]).to eq("Custom Name")
       end
@@ -119,20 +119,20 @@ RSpec.describe Expectant::BoundSchema do
       end
 
       it "applies fallback when validation fails" do
-        result = bound_schema.validate({ name: "invalid" })
+        result = bound_schema.validate({name: "invalid"})
         expect(result.success?).to be true
         expect(result.to_h[:name]).to eq("Fallback Value")
       end
 
       it "does not apply fallback when validation succeeds" do
-        result = bound_schema.validate({ name: "valid" })
+        result = bound_schema.validate({name: "valid"})
         expect(result.success?).to be true
         expect(result.to_h[:name]).to eq("valid")
       end
 
       it "evaluates proc fallback in instance context" do
         instance.fallback_value = "Instance Fallback"
-        result = bound_schema.validate({ name: "invalid" })
+        result = bound_schema.validate({name: "invalid"})
         expect(result.to_h[:name]).to eq("Instance Fallback")
       end
     end
@@ -154,7 +154,7 @@ RSpec.describe Expectant::BoundSchema do
       end
 
       it "applies static fallback when validation fails" do
-        result = bound_schema.validate({ count: -5 })
+        result = bound_schema.validate({count: -5})
         expect(result.success?).to be true
         expect(result.to_h[:count]).to eq(0)
       end
@@ -173,13 +173,13 @@ RSpec.describe Expectant::BoundSchema do
       end
 
       it "passes context to contract" do
-        result = bound_schema.validate({ name: "admin" }, context: { restricted: true })
+        result = bound_schema.validate({name: "admin"}, context: {restricted: true})
         expect(result.success?).to be false
         expect(result.errors[:name]).to include("restricted")
       end
 
       it "allows validation to succeed without restricted context" do
-        result = bound_schema.validate({ name: "admin" }, context: { restricted: false })
+        result = bound_schema.validate({name: "admin"}, context: {restricted: false})
         expect(result.success?).to be true
       end
     end
@@ -206,14 +206,14 @@ RSpec.describe Expectant::BoundSchema do
       end
 
       it "applies multiple fallbacks independently" do
-        result = bound_schema.validate({ name: "bad", age: -5 })
+        result = bound_schema.validate({name: "bad", age: -5})
         expect(result.success?).to be true
         expect(result.to_h[:name]).to eq("Unknown")
         expect(result.to_h[:age]).to eq(0)
       end
 
       it "only applies fallback to failing fields" do
-        result = bound_schema.validate({ name: "good", age: -5 })
+        result = bound_schema.validate({name: "good", age: -5})
         expect(result.success?).to be true
         expect(result.to_h[:name]).to eq("good")
         expect(result.to_h[:age]).to eq(0)

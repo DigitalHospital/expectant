@@ -65,7 +65,7 @@ RSpec.describe Expectant::Schema do
 
   describe "#add_validator" do
     it "adds a validator definition" do
-      validator = { name: :name, block: proc { true } }
+      validator = {name: :name, block: proc { true }}
       schema.add_validator(validator)
 
       expect(schema.validators).to include(validator)
@@ -76,15 +76,15 @@ RSpec.describe Expectant::Schema do
       schema.contract # Build contract
       expect(schema.instance_variable_get(:@contract_class)).not_to be_nil
 
-      validator = { name: :name, block: proc { true } }
+      validator = {name: :name, block: proc { true }}
       schema.add_validator(validator)
 
       expect(schema.instance_variable_get(:@contract_class)).to be_nil
     end
 
     it "allows adding multiple validators" do
-      validator1 = { name: :name, block: proc { true } }
-      validator2 = { name: :age, block: proc { true } }
+      validator1 = {name: :name, block: proc { true }}
+      validator2 = {name: :age, block: proc { true }}
 
       schema.add_validator(validator1)
       schema.add_validator(validator2)
@@ -113,7 +113,7 @@ RSpec.describe Expectant::Schema do
       schema.add_field(optional_field)
 
       contract = schema.contract.new
-      result = contract.call({ name: "John" })
+      result = contract.call({name: "John"})
 
       expect(result.success?).to be true
     end
@@ -129,7 +129,7 @@ RSpec.describe Expectant::Schema do
       schema.add_validator(validator)
 
       contract = schema.contract.new
-      result = contract.call({ age: -5 })
+      result = contract.call({age: -5})
 
       expect(result.success?).to be false
       expect(result.errors[:age]).to include("must be positive")
@@ -146,7 +146,7 @@ RSpec.describe Expectant::Schema do
       schema.add_validator(validator)
 
       contract = schema.contract.new
-      result = contract.call({ name: "invalid" })
+      result = contract.call({name: "invalid"})
 
       expect(result.success?).to be false
     end
@@ -171,7 +171,7 @@ RSpec.describe Expectant::Schema do
   describe "#duplicate" do
     it "creates a copy of the schema" do
       field = Expectant::Expectation.new(:name, type: :string)
-      validator = { name: :name, block: proc { true } }
+      validator = {name: :name, block: proc { true }}
 
       schema.add_field(field)
       schema.add_validator(validator)
@@ -215,7 +215,7 @@ RSpec.describe Expectant::Schema do
   describe "#reset!" do
     it "clears all fields and validators" do
       field = Expectant::Expectation.new(:name, type: :string)
-      validator = { name: :name, block: proc { true } }
+      validator = {name: :name, block: proc { true }}
 
       schema.add_field(field)
       schema.add_validator(validator)

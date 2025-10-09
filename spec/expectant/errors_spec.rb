@@ -12,11 +12,9 @@ RSpec.describe "Expectant Error Classes" do
 
     it "can be caught as StandardError" do
       expect do
-        begin
-          raise described_class, "test"
-        rescue StandardError => e
-          expect(e).to be_a(described_class)
-        end
+        raise described_class, "test"
+      rescue => e
+        expect(e).to be_a(described_class)
       end.not_to raise_error
     end
   end
@@ -34,11 +32,9 @@ RSpec.describe "Expectant Error Classes" do
 
     it "can be caught as Expectant::Error" do
       expect do
-        begin
-          raise described_class, "test"
-        rescue Expectant::Error => e
-          expect(e).to be_a(described_class)
-        end
+        raise described_class, "test"
+      rescue Expectant::Error => e
+        expect(e).to be_a(described_class)
       end.not_to raise_error
     end
   end
@@ -56,11 +52,9 @@ RSpec.describe "Expectant Error Classes" do
 
     it "can be caught as Expectant::Error" do
       expect do
-        begin
-          raise described_class, "test"
-        rescue Expectant::Error => e
-          expect(e).to be_a(described_class)
-        end
+        raise described_class, "test"
+      rescue Expectant::Error => e
+        expect(e).to be_a(described_class)
       end.not_to raise_error
     end
   end
@@ -78,11 +72,9 @@ RSpec.describe "Expectant Error Classes" do
 
     it "can be caught as Expectant::Error" do
       expect do
-        begin
-          raise described_class, "test"
-        rescue Expectant::Error => e
-          expect(e).to be_a(described_class)
-        end
+        raise described_class, "test"
+      rescue Expectant::Error => e
+        expect(e).to be_a(described_class)
       end.not_to raise_error
     end
   end
@@ -97,24 +89,20 @@ RSpec.describe "Expectant Error Classes" do
         Expectant::SchemaError,
         Expectant::ValidationError
       ].each do |error_class|
-        begin
-          raise error_class, "test"
-        rescue Expectant::Error => e
-          errors_caught << e.class
-        end
+        raise error_class, "test"
+      rescue Expectant::Error => e
+        errors_caught << e.class
       end
 
       expect(errors_caught.size).to eq(4)
     end
 
     it "allows specific error handling" do
-      begin
-        raise Expectant::ConfigurationError, "config error"
-      rescue Expectant::ConfigurationError => e
-        expect(e.message).to eq("config error")
-      rescue Expectant::Error
-        fail "Should have caught ConfigurationError specifically"
-      end
+      raise Expectant::ConfigurationError, "config error"
+    rescue Expectant::ConfigurationError => e
+      expect(e.message).to eq("config error")
+    rescue Expectant::Error
+      fail "Should have caught ConfigurationError specifically"
     end
   end
 end
