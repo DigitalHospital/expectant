@@ -7,6 +7,7 @@ require_relative "bound_schema"
 module Expectant
   module DSL
     def self.included(base)
+      base.include(Types)
       base.extend(ClassMethods)
     end
 

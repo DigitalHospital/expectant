@@ -2,14 +2,14 @@
 
 module Expectant
   class Expectation
-    attr_reader :name, :type, :dry_type, :fallback, :default
+    attr_reader :name, :type, :dry_type, :fallback, :default, :metadata
 
     def initialize(name, type: nil, default: nil, optional: false, fallback: nil, **options)
       @name = name
       @type = type
       @default = default
       @fallback = fallback
-      @options = options
+      @metadata = options
 
       base_type = Types.resolve(type)
       base_type = base_type.optional if optional

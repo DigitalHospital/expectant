@@ -8,6 +8,16 @@ RSpec.describe Expectant::Expectation do
       expect(expectation.type).to eq(:string)
     end
 
+    it "stores extra options as metadata" do
+      expectation = described_class.new(:field, type: :string, description: "A field", label: "My Field")
+      expect(expectation.metadata).to eq({ description: "A field", label: "My Field" })
+    end
+
+    it "returns empty hash for metadata when no extra options given" do
+      expectation = described_class.new(:field, type: :string)
+      expect(expectation.metadata).to eq({})
+    end
+
     it "accepts default value" do
       expectation = described_class.new(:status, type: :string, default: "pending")
       expect(expectation.default).to eq("pending")
