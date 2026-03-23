@@ -58,6 +58,27 @@ RSpec.describe Expectant::BoundSchema do
         expect(result.success?).to be false
         expect(result.errors[:name]).to include("is missing")
       end
+
+      it "discards unknown keys by default" do
+        result = bound_schema.validate({name: "John", post_code: "12345"})
+        expect(result.success?).to be true
+        expect(result.to_h).to eq({name: "John"})
+      end
+    end
+
+    context "with strict unknown key validation" do
+      let(:schema) { Expectant::Schema.new(:test, validation: :strict) }
+
+      before do
+        field = Expectant::Expectation.new(:name, type: :string)
+        schema.add_field(field)
+      end
+
+      it "returns errors for unknown keys" do
+        result = bound_schema.validate({name: "John", post_code: "12345"})
+        expect(result.success?).to be false
+        expect(result.errors.to_h).to have_key(:post_code)
+      end
     end
 
     context "with proc defaults" do

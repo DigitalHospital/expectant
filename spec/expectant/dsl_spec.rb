@@ -98,6 +98,38 @@ RSpec.describe Expectant::DSL do
       end
     end
 
+    context "with validation mode" do
+      it "uses permissive mode by default" do
+        custom_class = Class.new do
+          include Expectant::DSL
+
+          expects :inputs
+        end
+
+        expect(custom_class.inputs.validation).to eq(:permissive)
+      end
+
+      it "supports strict mode" do
+        custom_class = Class.new do
+          include Expectant::DSL
+
+          expects :inputs, validation: :strict
+        end
+
+        expect(custom_class.inputs.validation).to eq(:strict)
+      end
+
+      it "raises error with invalid validation option" do
+        expect do
+          Class.new do
+            include Expectant::DSL
+
+            expects :inputs, validation: :unknown
+          end
+        end.to raise_error(Expectant::ConfigurationError, /Invalid validation option/)
+      end
+    end
+
     context "with collision policy" do
       it "raises error on method collision with :error policy" do
         expect do

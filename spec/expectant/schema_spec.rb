@@ -8,6 +8,10 @@ RSpec.describe Expectant::Schema do
       expect(schema.name).to eq(:test_schema)
     end
 
+    it "defaults to permissive validation" do
+      expect(schema.validation).to eq(:permissive)
+    end
+
     it "initializes empty fields array" do
       expect(schema.fields).to eq([])
     end
@@ -165,6 +169,28 @@ RSpec.describe Expectant::Schema do
 
       contract = schema.contract.new
       expect(contract).to be_a(Dry::Validation::Contract)
+    end
+
+    it "discards unknown keys in permissive mode" do
+      field = Expectant::Expectation.new(:name, type: :string)
+      schema.add_field(field)
+
+      contract = schema.contract.new
+      result = contract.call({name: "John", post_code: "12345"})
+
+      expect(result.success?).to be true
+      expect(result.to_h).to eq({name: "John"})
+    end
+
+    it "rejects unknown keys in strict mode" do
+      strict_schema = described_class.new(:strict_schema, validation: :strict)
+      strict_schema.add_field(Expectant::Expectation.new(:name, type: :string))
+
+      contract = strict_schema.contract.new
+      result = contract.call({name: "John", post_code: "12345"})
+
+      expect(result.success?).to be false
+      expect(result.errors.to_h).to have_key(:post_code)
     end
   end
 

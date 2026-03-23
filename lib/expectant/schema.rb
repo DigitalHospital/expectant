@@ -4,13 +4,14 @@ require "dry/validation"
 
 module Expectant
   class Schema
-    attr_reader :name, :fields, :validators
+    attr_reader :name, :fields, :validators, :validation
 
-    def initialize(name)
+    def initialize(name, validation: :permissive)
       @name = name
       @fields = []
       @validators = []
       @contract_class = nil
+      @validation = validation
     end
 
     def keys
@@ -22,7 +23,7 @@ module Expectant
     end
 
     def duplicate
-      dup = self.class.new(@name)
+      dup = self.class.new(@name, validation: @validation)
       dup.instance_variable_set(:@fields, @fields.dup)
       dup.instance_variable_set(:@validators, @validators.dup)
       dup
@@ -55,6 +56,7 @@ module Expectant
     def build_contract
       fields = @fields
       validators = @validators
+      validation_mode = @validation
 
       Class.new(Dry::Validation::Contract) do
         # Enable option passing (allows context and instance to be passed at validation time)
@@ -63,6 +65,8 @@ module Expectant
 
         # Define schema based on fields using dry-types
         params do
+          config.validate_keys = true if validation_mode == :strict
+
           fields.each do |field|
             dry_type = field.dry_type
 

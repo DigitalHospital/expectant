@@ -33,7 +33,8 @@ module Expectant
       # Options:
       #   collision: :error|:force -> method name collision policy for dynamic definitions
       #   singular: string|symbol  -> control singular name for the schema
-      def expects(schema_name, collision: :error, singular: nil)
+      #   validation: :permissive|:strict -> unknown key handling
+      def expects(schema_name, collision: :error, singular: nil, validation: :permissive)
         field_method_name = Utils.singularize(schema_name.to_sym)
         if !singular.nil?
           if singular.is_a?(String) || singular.is_a?(Symbol)
@@ -42,12 +43,23 @@ module Expectant
             raise ConfigurationError, "Invalid singular option: #{singular.inspect}"
           end
         end
+
+        validation = validation.to_sym
+        if ![:permissive, :strict].include?(validation)
+          raise ConfigurationError, "Invalid validation option: #{validation.inspect}"
+        end
+
         schema = schema_name.to_sym
 
         if @_expectant_schemas.key?(schema)
           raise SchemaError, "Schema :#{schema} already defined"
         else
-          create_schema(schema, collision: collision, field_method_name: field_method_name)
+          create_schema(
+            schema,
+            collision: collision,
+            field_method_name: field_method_name,
+            validation: validation
+          )
         end
 
         self
@@ -59,8 +71,8 @@ module Expectant
 
       private
 
-      def create_schema(schema_name, collision: :error, field_method_name: nil)
-        @_expectant_schemas[schema_name] = Schema.new(schema_name)
+      def create_schema(schema_name, collision: :error, field_method_name: nil, validation: :permissive)
+        @_expectant_schemas[schema_name] = Schema.new(schema_name, validation: validation)
 
         # Dynamically define the field definition method
         # (e.g. input for :inputs, datum for :data)
